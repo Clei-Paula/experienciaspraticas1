@@ -1,0 +1,495 @@
+<!-- ong-platform-single.html
+     Single-file Platform (HTML + CSS + JS) for NGO platform - entregue como 1 código
+     - Mobile-first, semantic HTML5
+     - Accessibility-aware (aria attributes, skip link, focus styles)
+     - Form with HTML5 validation + JS masks (CPF, telefone, CEP) and date limit
+     - Lazy-loading images, srcset, responsive layout
+     - Basic performance tweaks (defer script, small inline CSS)
+     - Simulated donation & volunteer signup (no backend)
+     Customize texts & replace images in <img src="..."> with real assets.
+-->
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Plataforma ONG — Projetos, Voluntariado e Doações</title>
+  <meta name="description" content="Plataforma para ONGs: gestão de projetos, engajamento de voluntários e captação de recursos. Mobile-first, acessível e responsiva." />
+  <meta name="keywords" content="ONG, voluntariado, doações, projetos sociais, transparência" />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🌿</text></svg>">
+
+  <!-- Minimal critical CSS (mobile-first). Move to external file for production. -->
+  <style>
+    :root{
+      --accent:#2a7f62;
+      --accent-2:#1f5e46;
+      --bg:#ffffff;
+      --muted:#6b6b6b;
+      --text:#111;
+      --radius:10px;
+      --max-width:1100px;
+      font-size:16px;
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%;}
+    body{
+      margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;
+      color:var(--text);background:var(--bg);line-height:1.45;-webkit-font-smoothing:antialiased;
+    }
+    a{color:var(--accent);text-decoration:none}
+    .container{max-width:var(--max-width);margin:0 auto;padding:1rem;}
+    /* Skip link */
+    .skip-link{position:absolute;left:-999px;top:auto;width:1px;height:1px;overflow:hidden}
+    .skip-link:focus{position:static;width:auto;height:auto;padding:.5rem;background:#000;color:#fff;border-radius:6px;z-index:9999}
+    header.site-header{padding:.6rem 0;border-bottom:1px solid #eee;background:linear-gradient(0deg, rgba(0,0,0,0.02), transparent)}
+    .brand{display:flex;gap:.75rem;align-items:center}
+    .brand img{height:42px}
+    nav.main-nav{margin-top:.5rem}
+    nav.main-nav ul{list-style:none;padding:0;margin:0;display:flex;gap:.4rem;flex-wrap:wrap}
+    nav.main-nav a{display:inline-block;padding:.45rem .7rem;border-radius:8px}
+    .hero{display:grid;grid-template-columns:1fr;gap:1rem;align-items:center;margin:1rem 0}
+    .hero figure{margin:0}
+    .hero img{width:100%;height:auto;border-radius:var(--radius);display:block}
+    h1{font-size:1.5rem;margin:.2rem 0}
+    h2{font-size:1.125rem;margin:.5rem 0}
+    .btn{display:inline-block;padding:.55rem .9rem;border-radius:8px;background:var(--accent);color:#fff;border:none;cursor:pointer}
+    .btn.secondary{background:transparent;color:var(--accent);border:1px solid var(--accent)}
+    .grid{display:grid;gap:1rem}
+    .card{background:#fbfbfb;padding:1rem;border-radius:10px}
+    .project-list{display:grid;gap:.8rem}
+    .project{display:flex;gap:.8rem;align-items:flex-start}
+    .project img{width:100px;height:72px;object-fit:cover;border-radius:8px}
+    .donation-meter{height:12px;background:#e9f7ef;border-radius:999px;overflow:hidden}
+    .meter-fill{height:100%;background:var(--accent);width:0%;}
+    footer.site-footer{padding:1rem 0;margin-top:2rem;border-top:1px solid #eee;background:#fafafa;font-size:.95rem}
+    /* Forms */
+    fieldset{border:1px solid #e7e7e7;padding:1rem;border-radius:8px;margin-bottom:1rem}
+    label{display:block;margin-top:.6rem;font-weight:600}
+    input,textarea,select{width:100%;padding:.6rem;border-radius:6px;border:1px solid #ccc;margin-top:.3rem;font-size:1rem}
+    input:focus,textarea:focus,select:focus{outline:3px solid rgba(42,127,98,0.12)}
+    .sr-only{position:absolute !important;left:-9999px;top:auto;width:1px;height:1px;overflow:hidden}
+    .form-actions{display:flex;gap:.5rem;margin-top:1rem;flex-wrap:wrap}
+    /* Accessibility helpers */
+    .visually-hidden{position:absolute!important;clip:rect(1px,1px,1px,1px);padding:0;border:0;height:1px;width:1px;overflow:hidden}
+    /* Responsive */
+    @media(min-width:760px){
+      .hero{grid-template-columns: 1fr 1fr}
+      .grid-2{grid-template-columns: 1fr 320px}
+      .project img{width:150px;height:100px}
+      h1{font-size:2rem}
+    }
+    /* Keyboard focus visible */
+    :focus{outline:2px dashed var(--accent-2);outline-offset:3px}
+    /* small utilities */
+    .muted{color:var(--muted);font-size:.95rem}
+    .center{text-align:center}
+    .flex{display:flex;gap:.6rem;align-items:center}
+    .chip{display:inline-block;padding:.25rem .5rem;border-radius:999px;background:#f0f7f2;font-weight:600}
+  </style>
+</head>
+<body>
+  <a class="skip-link" href="#main">Pular para o conteúdo</a>
+
+  <header class="site-header" role="banner">
+    <div class="container flex" style="justify-content:space-between;align-items:center">
+      <div class="brand">
+        <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTWjh7-9Apew9iAeZyMPZ2aU0Lnfs0Fd7S3Cg&s" alt="" aria-hidden="true">
+        <div>
+          <strong>ONG Plataforma</strong><br>
+          <span class="muted">Missão • Transparência • Voluntariado</span>
+        </div>
+      </div>
+
+      <nav class="main-nav" role="navigation" aria-label="Menu principal">
+        <ul>
+          <li><a href="#home">Início</a></li>
+          <li><a href="#projetos">Projetos</a></li>
+          <li><a href="#voluntario">Voluntariado</a></li>
+          <li><a href="#doar">Doar</a></li>
+          <li><a href="#transparencia">Transparência</a></li>
+        </ul>
+      </nav>
+    </div>
+  </header>
+
+  <main id="main" class="container" role="main">
+    <!-- HERO / Área institucional -->
+    <section id="home" class="hero" aria-labelledby="home-title">
+      <div>
+        <h1 id="home-title">Transformando vidas através de projetos sociais</h1>
+        <p class="muted">Missão: promover inclusão, educação e saúde. Conheça nossos projetos, candidate-se como voluntário ou apoie com uma doação.</p>
+        <p>
+          <a class="btn" href="#projetos">Ver projetos</a>
+          <a class="btn secondary" href="#cadastro-form">Fazer cadastro</a>
+        </p>
+        <section aria-labelledby="impact-title" class="card" style="margin-top:1rem">
+          <h2 id="impact-title">Números e impacto</h2>
+          <dl>
+            <div><dt>Projetos ativos</dt><dd>8</dd></div>
+            <div><dt>Voluntários</dt><dd>120</dd></div>
+            <div><dt>Doações (ano)</dt><dd>R$ 250.000</dd></div>
+          </dl>
+        </section>
+      </div>
+
+      <figure>
+        <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTWjh7-9Apew9iAeZyMPZ2aU0Lnfs0Fd7S3Cg&s"
+             alt="Voluntários em atividade - substituir por foto real" width="800" height="500" loading="lazy" decoding="async">
+        <figcaption class="visually-hidden">Equipe e voluntários em ação</figcaption>
+      </figure>
+    </section>
+
+    <!-- Projetos -->
+    <section id="projetos" aria-labelledby="projetos-title" class="grid grid-2" style="margin-top:1rem">
+      <div>
+        <h2 id="projetos-title">Projetos sociais</h2>
+        <p class="muted">Filtre por categoria, veja indicadores de impacto e veja como ajudar.</p>
+
+        <!-- Filter (UI only) -->
+        <div style="display:flex;gap:.5rem;align-items:center;margin:0.5rem 0">
+          <label for="filtro" class="visually-hidden">Filtrar projetos</label>
+          <select id="filtro" aria-label="Filtrar projetos">
+            <option value="todos">Todos</option>
+            <option value="educacao">Educação</option>
+            <option value="saude">Saúde</option>
+            <option value="inclusao">Inclusão</option>
+          </select>
+          <button id="btnFiltro" class="btn secondary" type="button">Aplicar</button>
+        </div>
+
+        <div class="project-list" id="projectList" aria-live="polite">
+          <!-- Example project -->
+          <article class="project card" data-categoria="educacao" aria-labelledby="p1-title">
+            <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='150' height='100'%3E%3Crect width='100%25' height='100%25' fill='%23fff3e6'/%3E%3Ctext x='50%25' y='50%25' text-anchor='middle' dominant-baseline='middle' font-size='12' fill='%23333'%3EReforço escolar%3C/text%3E%3C/svg%3E"
+                 alt="Crianças em sala de aula" loading="lazy">
+            <div>
+              <h3 id="p1-title">Reforço Escolar</h3>
+              <p class="muted">Apoio escolar semanal para 120 crianças em zonas vulneráveis — foco em alfabetização.</p>
+              <p><a class="btn" href="#voluntario" data-project="Reforço Escolar">Quero me voluntariar</a></p>
+            </div>
+          </article>
+
+          <article class="project card" data-categoria="saude" aria-labelledby="p2-title">
+            <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='150' height='100'%3E%3Crect width='100%25' height='100%25' fill='%23eef5ff'/%3E%3Ctext x='50%25' y='50%25' text-anchor='middle' dominant-baseline='middle' font-size='12' fill='%23333'%3EClínica móvel%3C/text%3E%3C/svg%3E"
+                 alt="Atendimento de saúde" loading="lazy">
+            <div>
+              <h3 id="p2-title">Clínica Móvel</h3>
+              <p class="muted">Atendimento médico e triagem em comunidades remotas — indicadores de impacto e relatórios trimestrais.</p>
+              <p><a class="btn" href="#projetos" data-project="Clínica Móvel">Mais informações</a></p>
+            </div>
+          </article>
+
+          <!-- more projects could be appended via JS -->
+        </div>
+      </div>
+
+      <!-- Right column: donation summary & transparency -->
+      <aside class="card" aria-labelledby="donate-widget">
+        <h2 id="donate-widget">Captação de recursos</h2>
+        <p class="muted">Campanha: <strong>Fundo Educacional 2025</strong></p>
+        <p class="muted">Meta: R$ 50.000 — Arrecadado: <strong id="collected">R$ 12.450</strong></p>
+        <div class="donation-meter" aria-hidden="true">
+          <div class="meter-fill" id="meterFill" style="width:24%;"></div>
+        </div>
+        <p style="margin-top:.6rem">
+          <a class="btn" href="#doar">Doar agora (simulação)</a>
+        </p>
+
+        <h3 style="margin-top:1rem">Transparência</h3>
+        <p class="muted">Relatórios públicos e prestação de contas disponíveis. Baixe o relatório anual em PDF.</p>
+        <p><a class="btn secondary" href="#transparencia">Ver relatórios</a></p>
+      </aside>
+    </section>
+
+    <!-- Voluntariado -->
+    <section id="voluntario" aria-labelledby="vol-title" class="card" style="margin-top:1rem">
+      <h2 id="vol-title">Portal do Voluntário</h2>
+      <p class="muted">Encontre oportunidades e mantenha seu histórico de participação.</p>
+
+      <!-- Opportunities -->
+      <div role="list" aria-label="Oportunidades de voluntariado" style="margin-top:.6rem">
+        <article role="listitem" class="card" style="margin-bottom:.5rem">
+          <h3>Ajuda em sala de aula</h3>
+          <p class="muted">Necessário: disponibilidade semanal de 3 horas.</p>
+          <p><a class="btn" href="#cadastro-form" data-vol="Ajuda em sala de aula">Candidatar-se</a></p>
+        </article>
+
+        <article role="listitem" class="card" style="margin-bottom:.5rem">
+          <h3>Atendimento na clínica móvel</h3>
+          <p class="muted">Profissionais de saúde e apoio administrativo.</p>
+          <p><a class="btn" href="#cadastro-form" data-vol="Clínica móvel">Candidatar-se</a></p>
+        </article>
+      </div>
+    </section>
+
+    <!-- Doações (simulação) -->
+    <section id="doar" aria-labelledby="doar-title" class="grid" style="margin-top:1rem">
+      <div class="card">
+        <h2 id="doar-title">Doar / Apoiar</h2>
+        <p class="muted">Escolha um valor e simule uma doação. Para integrar pagamentos reais, usar gateway (PagSeguro, PayPal) em backend seguro.</p>
+
+        <form id="formDoacao" aria-labelledby="doar-title" novalidate>
+          <label for="valor">Valor (R$) <span aria-hidden="true">*</span></label>
+          <select id="valor" required>
+            <option value="">Selecione</option>
+            <option value="20">R$ 20</option>
+            <option value="50">R$ 50</option>
+            <option value="100">R$ 100</option>
+            <option value="200">R$ 200</option>
+          </select>
+
+          <label for="metodo">Método</label>
+          <select id="metodo">
+            <option value="boleto">Boleto (simulação)</option>
+            <option value="cartao">Cartão (simulação)</option>
+            <option value="pix">PIX (simulação)</option>
+          </select>
+
+          <div class="form-actions">
+            <button class="btn" type="submit">Doar (simular)</button>
+            <button class="btn secondary" type="reset">Limpar</button>
+          </div>
+        </form>
+
+        <div id="donationResult" class="muted" aria-live="polite" style="margin-top:.6rem"></div>
+      </div>
+
+      <!-- Simple blog/press preview -->
+      <aside class="card">
+        <h2>Comunicação</h2>
+        <p class="muted">Últimas notícias</p>
+        <article style="margin-bottom:.6rem">
+          <h3>Projeto x alcança 100 alunos</h3>
+          <p class="muted">25 de setembro de 2025 — Entregamos kits escolares e iniciamos reforço.</p>
+        </article>
+        <article>
+          <h3>Relatório anual publicado</h3>
+          <p class="muted">Disponível na área de transparência.</p>
+        </article>
+        <p style="margin-top:.6rem"><a class="btn secondary" href="#transparencia">Ver mais</a></p>
+      </aside>
+    </section>
+
+    <!-- Cadastro / Form complex -->
+    <section id="cadastro-form" aria-labelledby="cad-title" class="card" style="margin-top:1rem">
+      <h2 id="cad-title">Cadastro — Voluntário / Doador</h2>
+      <p class="muted">Preencha os dados. Campos com * são obrigatórios.</p>
+
+      <form id="formCadastro" action="#" method="post" novalidate>
+        <fieldset>
+          <legend>Dados pessoais</legend>
+
+          <label for="nome">Nome completo <span aria-hidden="true">*</span></label>
+          <input id="nome" name="nome" type="text" required minlength="2" placeholder="Seu nome completo" />
+
+          <label for="email">E-mail <span aria-hidden="true">*</span></label>
+          <input id="email" name="email" type="email" required placeholder="seu@exemplo.com" />
+
+          <label for="cpf">CPF <span aria-hidden="true">*</span></label>
+          <input id="cpf" name="cpf" type="text" inputmode="numeric" required pattern="\d{3}\.\d{3}\.\d{3}-\d{2}" placeholder="000.000.000-00" aria-describedby="cpfHelp" />
+          <div id="cpfHelp" class="muted">Formato: 000.000.000-00</div>
+
+          <label for="telefone">Telefone</label>
+          <input id="telefone" name="telefone" type="tel" inputmode="tel" placeholder="(00) 90000-0000" />
+
+          <label for="nascimento">Data de nascimento</label>
+          <input id="nascimento" name="nascimento" type="date" />
+
+        </fieldset>
+
+        <fieldset>
+          <legend>Endereço</legend>
+
+          <label for="cep">CEP <span aria-hidden="true">*</span></label>
+          <input id="cep" name="cep" type="text" inputmode="numeric" required pattern="\d{5}-\d{3}" placeholder="00000-000" />
+
+          <label for="endereco">Endereço</label>
+          <input id="endereco" name="endereco" type="text" />
+
+          <label for="cidade">Cidade</label>
+          <input id="cidade" name="cidade" type="text" />
+
+          <label for="estado">Estado</label>
+          <select id="estado" name="estado" aria-label="Estado">
+            <option value="">Selecione</option>
+            <option value="SP">SP</option>
+            <option value="RJ">RJ</option>
+            <option value="MG">MG</option>
+            <option value="BA">BA</option>
+            <!-- adicionar demais estados conforme necessário -->
+          </select>
+        </fieldset>
+
+        <fieldset>
+          <legend>Preferências</legend>
+
+          <label for="perfil">Perfil</label>
+          <select id="perfil" name="perfil">
+            <option value="voluntario">Voluntário</option>
+            <option value="doador">Doador</option>
+            <option value="visitante">Visitante</option>
+          </select>
+
+          <label for="mensagem">Mensagem / Observações</label>
+          <textarea id="mensagem" name="mensagem" rows="4" maxlength="500" placeholder="Como gostaria de ajudar?"></textarea>
+        </fieldset>
+
+        <div class="form-actions">
+          <button type="submit" class="btn">Enviar cadastro</button>
+          <button type="reset" class="btn secondary">Limpar</button>
+        </div>
+        <div id="formMsg" aria-live="polite" class="muted" style="margin-top:.6rem"></div>
+      </form>
+    </section>
+
+    <!-- Transparência -->
+    <section id="transparencia" aria-labelledby="trans-title" class="card" style="margin-top:1rem">
+      <h2 id="trans-title">Transparência e Documentos</h2>
+      <p class="muted">Acesse relatórios financeiros, declarações e prestação de contas.</p>
+      <ul>
+        <li><a href="#" aria-label="Baixar relatório anual">Relatório anual 2024 (PDF)</a></li>
+        <li><a href="#" aria-label="Baixar demonstrativo financeiro">Demonstrativo financeiro (Q2 2025)</a></li>
+      </ul>
+    </section>
+  </main>
+
+  <footer class="site-footer" role="contentinfo">
+    <div class="container" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:.6rem">
+      <div>
+        <strong>ONG Plataforma</strong><br>
+        <address class="muted">Rua Exemplo, 123 — Cidade, UF • <a href="mailto:contato@ong.org">contato@ong.org</a></address>
+      </div>
+      <div class="center">
+        <small class="muted">&copy; <span id="year"></span> ONG Plataforma — Todos os direitos</small>
+      </div>
+    </div>
+  </footer>
+
+  <!-- JavaScript: masks, validation, simple UI behaviors -->
+  <script>
+    // Basic progressive enhancement script
+    document.addEventListener('DOMContentLoaded', function () {
+      // Footer year
+      document.getElementById('year').textContent = new Date().getFullYear();
+
+      // Limit date of birth to today - 18 years (example)
+      const nasc = document.getElementById('nascimento');
+      if (nasc) {
+        const today = new Date();
+        const yyyy = today.getFullYear() - 18;
+        const mm = String(today.getMonth() + 1).padStart(2,'0');
+        const dd = String(today.getDate()).padStart(2,'0');
+        nasc.max = `${yyyy}-${mm}-${dd}`;
+      }
+
+      // Mask helpers
+      function setMask(el, fn) {
+        el.addEventListener('input', function(){
+          const pos = el.selectionStart;
+          const old = el.value;
+          el.value = fn(el.value.replace(/\D/g,''));
+          // crude caret preservation: place at end
+          el.setSelectionRange(el.value.length, el.value.length);
+        });
+      }
+
+      const cpfEl = document.getElementById('cpf');
+      if (cpfEl) setMask(cpfEl, v => {
+        return v.replace(/^(\d{3})(\d)/, '$1.$2')
+                .replace(/^(\d{3}\.\d{3})(\d)/,'$1.$2')
+                .replace(/(\d{3}\.\d{3}\.\d{3})(\d)/,'$1-$2')
+                .slice(0,14);
+      });
+
+      const telEl = document.getElementById('telefone');
+      if (telEl) setMask(telEl, v => {
+        if (v.length > 10) {
+          return v.replace(/^(\d{2})(\d{5})(\d{4}).*/,'($1) $2-$3').slice(0,15);
+        }
+        return v.replace(/^(\d{2})(\d{4})(\d)/,'($1) $2-$3').slice(0,14);
+      });
+
+      const cepEl = document.getElementById('cep');
+      if (cepEl) setMask(cepEl, v => {
+        return v.replace(/^(\d{5})(\d)/,'$1-$2').slice(0,9);
+      });
+
+      // Projeto filter (client-side)
+      const filtro = document.getElementById('filtro');
+      const btnFiltro = document.getElementById('btnFiltro');
+      const projectList = document.getElementById('projectList');
+      btnFiltro?.addEventListener('click', function () {
+        const cat = filtro.value;
+        const items = projectList.querySelectorAll('.project');
+        items.forEach(it => {
+          const c = it.getAttribute('data-categoria') || 'todos';
+          it.style.display = (cat === 'todos' || cat === c) ? '' : 'none';
+        });
+      });
+
+      // Donation form simulation & meter update
+      const formDoacao = document.getElementById('formDoacao');
+      const donationResult = document.getElementById('donationResult');
+      const meterFill = document.getElementById('meterFill');
+      const collectedEl = document.getElementById('collected');
+      // simulated state
+      let collectedValue = 12450; // starting value (R$)
+      formDoacao?.addEventListener('submit', function (e) {
+        e.preventDefault();
+        if (!formDoacao.checkValidity()) {
+          donationResult.textContent = 'Preencha um valor válido.';
+          return;
+        }
+        const v = Number(document.getElementById('valor').value) || 0;
+        const method = document.getElementById('metodo').value;
+        // simulate adding
+        collectedValue += v;
+        collectedEl.textContent = 'R$ ' + collectedValue.toLocaleString('pt-BR');
+        const percent = Math.min(100, Math.round((collectedValue / 50000) * 100));
+        meterFill.style.width = percent + '%';
+        donationResult.textContent = `Doação simulada de R$ ${v.toFixed(2)} via ${method}. Obrigado!`;
+        formDoacao.reset();
+      });
+
+      // Cadastro form handling (simulação)
+      const form = document.getElementById('formCadastro');
+      const formMsg = document.getElementById('formMsg');
+      form?.addEventListener('submit', function (e) {
+        e.preventDefault();
+        if (!form.checkValidity()) {
+          // Let browser show validation messages
+          form.reportValidity();
+          return;
+        }
+        const data = Object.fromEntries(new FormData(form));
+        // Basic client-side CPF pattern check already in pattern attribute; additional checks can be added
+        formMsg.textContent = 'Cadastro enviado (simulação). Verifique sua caixa de e-mail para confirmação.';
+        console.log('Cadastro (simulação):', data);
+        form.reset();
+        // Move focus to message for screen readers
+        formMsg.setAttribute('tabindex','-1');
+        formMsg.focus();
+      });
+
+      // Links that prefill project/volunteer choice
+      document.querySelectorAll('a[data-project], a[data-vol]').forEach(a => {
+        a.addEventListener('click', function (e) {
+          const project = a.getAttribute('data-project') || a.getAttribute('data-vol');
+          const perfil = document.getElementById('perfil');
+          if (perfil) perfil.value = 'voluntario';
+          const mensagem = document.getElementById('mensagem');
+          if (mensagem && project) mensagem.value = (mensagem.value ? mensagem.value + '\n' : '') + 'Interesse no projeto: ' + project;
+          // optionally, navigate to form
+        });
+      });
+
+      // Basic keyboard accessible focus for project list (example)
+      projectList.querySelectorAll('.project').forEach((p, i) => {
+        p.setAttribute('tabindex','0');
+      });
+
+      // Performance hint: lazyload handled via loading="lazy" on images above.
+    });
+  </script>
+</body>
+</html>
